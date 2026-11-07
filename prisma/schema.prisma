@@ -1,0 +1,75 @@
+generator client {
+    provider = "prisma-client"
+    output   = "../src/generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+model User {
+    id            String         @id @default(uuid()) @db.Uuid
+    name          String
+    email         String         @unique
+    password      String
+    createdAt     DateTime       @default(now()) @map("created_at")
+    updatedAt     DateTime       @updatedAt @map("updated_at")
+    refreshTokens RefreshToken[]
+    decks         Deck[]
+    tutorialCompletedAt DateTime? @map("tutorial_completed_at")
+    participations GameParticipant[]
+
+    @@map("users")
+}
+
+model RefreshToken {
+    id        String   @id @default(uuid())
+    userId    String   @map("user_id") @db.Uuid
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    token     String   @unique
+    createdAt DateTime @default(now()) @map("created_at")
+    expiresAt DateTime @map("expires_at")
+    revoked   Boolean  @default(false)
+
+    @@map("refresh_tokens")
+}
+
+model Deck {
+    id        String   @id @default(uuid()) @db.Uuid
+    userId    String   @map("user_id") @db.Uuid
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    name      String
+    cards     String[]
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    @@index([userId])
+    @@map("decks")
+}
+
+model Game {
+    id           String            @id @db.Uuid
+    mode         String
+    phase        String
+    state        Json
+    createdAt    DateTime          @default(now()) @map("created_at")
+    updatedAt    DateTime          @updatedAt @map("updated_at")
+    finishedAt   DateTime?         @map("finished_at")
+    participants GameParticipant[]
+
+    @@map("games")
+}
+
+model GameParticipant {
+    id     String   @id @default(uuid()) @db.Uuid
+    gameId String   @map("game_id") @db.Uuid
+    game   Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+    userId String   @map("user_id") @db.Uuid
+    user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    heroId String?  @map("hero_id")
+    won    Boolean?
+
+    @@unique([gameId, userId])
+    @@index([userId])
+    @@map("game_participants")
+}
